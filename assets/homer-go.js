@@ -3,6 +3,9 @@
   var servicesRefreshing = false;
   var messageRefreshing = false;
   var offline = false;
+  var connectivityCheckID = 0;
+  var offlineRecoveryTimer = 0;
+  var offlineRecoveryIntervalMs = 5000;
 
   function interval(value) {
     var n = Number(value || 0);
@@ -67,6 +70,26 @@
     var content = document.querySelector("[data-online-content]");
     if (message) message.hidden = !isOffline;
     if (content) content.hidden = isOffline;
+    syncOfflineRecoveryTimer();
+  }
+
+  function syncOfflineRecoveryTimer() {
+    if (!window.HOMER_CONNECTIVITY_CHECK) return;
+
+    if (!offline || document.hidden) {
+      if (offlineRecoveryTimer) {
+        window.clearTimeout(offlineRecoveryTimer);
+        offlineRecoveryTimer = 0;
+      }
+      return;
+    }
+
+    if (!offlineRecoveryTimer) {
+      offlineRecoveryTimer = window.setTimeout(function () {
+        offlineRecoveryTimer = 0;
+        checkOffline().finally(syncOfflineRecoveryTimer);
+      }, offlineRecoveryIntervalMs);
+    }
   }
 
   function clearConnectivityTimestamp() {
@@ -86,8 +109,10 @@
   async function checkOffline() {
     if (!window.HOMER_CONNECTIVITY_CHECK) return;
 
+    var checkID = ++connectivityCheckID;
+
     if (!window.navigator.onLine) {
-      setOffline(true);
+      if (checkID === connectivityCheckID) setOffline(true);
       return;
     }
 
@@ -105,12 +130,14 @@
         response.status === 401 ||
         response.status === 403
       ) {
-        window.location.href = aliveCheckUrl;
+        if (checkID === connectivityCheckID) {
+          window.location.href = aliveCheckUrl;
+        }
         return;
       }
-      setOffline(!response.ok);
+      if (checkID === connectivityCheckID) setOffline(!response.ok);
     } catch (_) {
-      setOffline(true);
+      if (checkID === connectivityCheckID) setOffline(true);
     }
   }
 
@@ -132,8 +159,12 @@
   }
 
   document.addEventListener("visibilitychange", function () {
-    if (document.hidden) return;
+    if (document.hidden) {
+      syncOfflineRecoveryTimer();
+      return;
+    }
     checkOffline();
+    syncOfflineRecoveryTimer();
     if (servicesInterval > 0) refreshServices();
     if (messageInterval > 0) refreshMessage();
   });

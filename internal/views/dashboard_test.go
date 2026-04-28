@@ -577,3 +577,54 @@ func TestRuntimeScriptCleansConnectivityTimestampAndPausesRefreshOffline(t *test
 		t.Fatalf("homer-go.js does not clean t or pause refresh while offline")
 	}
 }
+
+func TestRuntimeScriptIgnoresStaleConnectivityChecks(t *testing.T) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller() failed")
+	}
+	body, err := os.ReadFile(filepath.Join(filepath.Dir(filename), "..", "..", "assets", "homer-go.js"))
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	script := string(body)
+
+	for _, want := range []string{
+		`var connectivityCheckID = 0;`,
+		`var checkID = ++connectivityCheckID;`,
+		`if (checkID === connectivityCheckID) setOffline(!response.ok);`,
+		`if (checkID === connectivityCheckID) setOffline(true);`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("homer-go.js missing stale connectivity check guard %s", want)
+		}
+	}
+}
+
+func TestRuntimeScriptPollsForRecoveryOnlyWhileOffline(t *testing.T) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller() failed")
+	}
+	body, err := os.ReadFile(filepath.Join(filepath.Dir(filename), "..", "..", "assets", "homer-go.js"))
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	script := string(body)
+
+	for _, want := range []string{
+		`var offlineRecoveryTimer = 0;`,
+		`var offlineRecoveryIntervalMs = 5000;`,
+		`syncOfflineRecoveryTimer();`,
+		`if (!offline || document.hidden)`,
+		`window.clearTimeout(offlineRecoveryTimer);`,
+		`offlineRecoveryTimer = window.setTimeout(function () {`,
+		`offlineRecoveryTimer = 0;`,
+		`checkOffline().finally(syncOfflineRecoveryTimer);`,
+		`}, offlineRecoveryIntervalMs);`,
+	} {
+		if !strings.Contains(script, want) {
+			t.Fatalf("homer-go.js missing offline recovery polling code %s", want)
+		}
+	}
+}
