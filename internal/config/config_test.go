@@ -212,18 +212,29 @@ func TestLoadAutoInitializesMissingWorkdirConfigFromExample(t *testing.T) {
 	}
 }
 
-func TestLoadDoesNotAutoInitializeExplicitConfigPath(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "custom.yml")
+func TestLoadAutoInitReturnsExplicitErrorForMissingConfigDir(t *testing.T) {
+	configDir := filepath.Join(t.TempDir(), "missing")
 	_, err := (Loader{
-		ConfigPath:    path,
-		ExampleConfig: []byte("title: Generated\n"),
+		ConfigDir:     configDir,
+		ExampleConfig: []byte("title: Generated\nservices: []\n"),
 		AutoInit:      true,
 	}).Load(context.Background(), "default")
 	if err == nil {
-		t.Fatal("Load() error = nil, want not found error")
+		t.Fatal("Load() error = nil, want config directory error")
 	}
-	if _, statErr := os.Stat(path); !errors.Is(statErr, os.ErrNotExist) {
-		t.Fatalf("generated explicit config, stat error = %v", statErr)
+
+	var loadErr *LoadError
+	if !errors.As(err, &loadErr) {
+		t.Fatalf("Load() error = %T, want LoadError", err)
+	}
+	if loadErr.Kind != ErrorConfigDir {
+		t.Fatalf("LoadError.Kind = %q, want %q", loadErr.Kind, ErrorConfigDir)
+	}
+	if !strings.Contains(loadErr.Error(), "create the directory first") {
+		t.Fatalf("LoadError.Error() = %q, want explicit directory guidance", loadErr.Error())
+	}
+	if _, statErr := os.Stat(configDir); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("config directory stat error = %v, want still missing", statErr)
 	}
 }
 

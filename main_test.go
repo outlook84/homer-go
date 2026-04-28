@@ -215,6 +215,86 @@ func TestCacheNameChangesWhenAssetsChange(t *testing.T) {
 	}
 }
 
+func TestLocalAssetRegistryServesOnlyRegisteredFiles(t *testing.T) {
+	cwd := t.TempDir()
+	path := filepath.Join(cwd, "icons", "logo.txt")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
+	}
+	if err := os.WriteFile(path, []byte("logo"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	registry := newLocalAssetRegistry(cwd)
+	mapped, ok := registry.Resolve("icons/logo.txt")
+	if !ok || !strings.HasPrefix(mapped, "/user-assets/") {
+		t.Fatalf("Resolve() = %q, %v; want registered user asset", mapped, ok)
+	}
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/"+strings.TrimPrefix(mapped, "/user-assets/"), nil)
+	registry.ServeHTTP(w, r)
+	if w.Code != http.StatusOK || w.Body.String() != "logo" {
+		t.Fatalf("registered asset response = %d %q, want 200 logo", w.Code, w.Body.String())
+	}
+
+	w = httptest.NewRecorder()
+	r = httptest.NewRequest(http.MethodGet, "/missing-token", nil)
+	registry.ServeHTTP(w, r)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("unregistered asset status = %d, want 404", w.Code)
+	}
+}
+
+func TestLocalAssetRegistryRejectsUnspecifiedPathForms(t *testing.T) {
+	registry := newLocalAssetRegistry(t.TempDir())
+	for _, input := range []string{
+		"../secret.txt",
+		"https://example.test/logo.png",
+		"data:image/png;base64,abc",
+		"/assets/icons/logo.png",
+		"/site-logo.png",
+		`\site-logo.png`,
+		"config.yml",
+		"team.yaml",
+		"pages/team.yml",
+	} {
+		if got, ok := registry.Resolve(input); ok {
+			t.Fatalf("Resolve(%q) = %q, true; want rejected", input, got)
+		}
+	}
+}
+
+func TestLocalAssetRegistryRejectsAbsolutePath(t *testing.T) {
+	cwd := t.TempDir()
+	path := filepath.Join(cwd, "logo.txt")
+	if err := os.WriteFile(path, []byte("logo"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	registry := newLocalAssetRegistry(t.TempDir())
+	if got, ok := registry.Resolve(path); ok {
+		t.Fatalf("Resolve(abs) = %q, true; want rejected", got)
+	}
+}
+
+func TestLocalAssetRegistryRejectsSymlinkOutsideRoot(t *testing.T) {
+	root := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "secret.txt")
+	if err := os.WriteFile(outside, []byte("secret"), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	link := filepath.Join(root, "logo.txt")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skipf("Symlink() error = %v", err)
+	}
+
+	registry := newLocalAssetRegistry(root)
+	if got, ok := registry.Resolve("logo.txt"); ok {
+		t.Fatalf("Resolve(symlink outside root) = %q, true; want rejected", got)
+	}
+}
+
 func writeTestAssets(t *testing.T, assetsDir string) {
 	t.Helper()
 	files := map[string]string{

@@ -1,7 +1,7 @@
 param(
   [int]$AppPort = 18080,
   [int]$MockPort = 19090,
-  [string]$ConfigPath = ""
+  [string]$DataDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,12 +20,12 @@ function Invoke-Native {
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
-if ($ConfigPath -eq "") {
-  $ConfigPath = Join-Path $RepoRoot "tmp\browser-mock-config.yml"
+if ($DataDir -eq "") {
+  $DataDir = Join-Path $RepoRoot "tmp\browser-mock"
 }
-$ConfigPath = [System.IO.Path]::GetFullPath($ConfigPath)
-$ConfigDir = Split-Path -Parent $ConfigPath
-New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
+$DataDir = [System.IO.Path]::GetFullPath($DataDir)
+New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
+$ConfigPath = Join-Path $DataDir "config.yml"
 
 $MockURL = "http://127.0.0.1:$MockPort"
 $AppURL = "http://127.0.0.1:$AppPort"
@@ -351,12 +351,12 @@ services:
 
 Set-Content -Encoding UTF8 -Path $ConfigPath -Value $config
 
-$mockExe = Join-Path $ConfigDir "browser-mock-api.exe"
-$appExe = Join-Path $ConfigDir "homer-go-browser-mock.exe"
-$mockOutLog = Join-Path $ConfigDir "browser-mock-api.out.log"
-$mockErrLog = Join-Path $ConfigDir "browser-mock-api.err.log"
-$appOutLog = Join-Path $ConfigDir "browser-mock-app.out.log"
-$appErrLog = Join-Path $ConfigDir "browser-mock-app.err.log"
+$mockExe = Join-Path $DataDir "browser-mock-api.exe"
+$appExe = Join-Path $DataDir "homer-go-browser-mock.exe"
+$mockOutLog = Join-Path $DataDir "browser-mock-api.out.log"
+$mockErrLog = Join-Path $DataDir "browser-mock-api.err.log"
+$appOutLog = Join-Path $DataDir "browser-mock-app.out.log"
+$appErrLog = Join-Path $DataDir "browser-mock-app.err.log"
 
 Write-Host "Building preview binaries..."
 Push-Location $RepoRoot
@@ -371,7 +371,7 @@ try {
   Write-Host "Press Ctrl+C to stop."
 
   $mock = Start-Process -FilePath $mockExe -ArgumentList @("-addr", "127.0.0.1:$MockPort") -WorkingDirectory $RepoRoot -NoNewWindow -PassThru -RedirectStandardOutput $mockOutLog -RedirectStandardError $mockErrLog
-  $app = Start-Process -FilePath $appExe -ArgumentList @("-addr", "127.0.0.1:$AppPort", "-config", $ConfigPath) -WorkingDirectory $RepoRoot -NoNewWindow -PassThru -RedirectStandardOutput $appOutLog -RedirectStandardError $appErrLog
+  $app = Start-Process -FilePath $appExe -ArgumentList @("-addr", "127.0.0.1:$AppPort", "-data", $DataDir) -WorkingDirectory $RepoRoot -NoNewWindow -PassThru -RedirectStandardOutput $appOutLog -RedirectStandardError $appErrLog
 
   while (-not $mock.HasExited -and -not $app.HasExited) {
     Start-Sleep -Milliseconds 500

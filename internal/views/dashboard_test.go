@@ -62,6 +62,26 @@ func TestPathsNormalizeAndPrefixInternalURLs(t *testing.T) {
 	}
 }
 
+func TestAssetURLUsesRegisteredLocalAssetResolver(t *testing.T) {
+	paths := NewPaths("/dash")
+	paths.AssetResolver = func(raw string) (string, bool) {
+		if raw == "icons/logo.png" {
+			return "/user-assets/test-token", true
+		}
+		return "", false
+	}
+
+	if got := paths.AssetURL("icons/logo.png"); got != "/dash/user-assets/test-token" {
+		t.Fatalf("AssetURL() = %q, want mapped local asset URL", got)
+	}
+	if got := paths.AssetURL("/assets/icons/logo.png"); got != "/dash/assets/icons/logo.png" {
+		t.Fatalf("AssetURL() = %q, want public assets URL", got)
+	}
+	if got := paths.AssetURL("/external/logo.png"); got != "/external/logo.png" {
+		t.Fatalf("AssetURL() = %q, want unchanged URL", got)
+	}
+}
+
 func TestPageURLAppliesBasePath(t *testing.T) {
 	got := pageURLWithPaths("page2", url.Values{"search": []string{"status"}}, NewPaths("/dash"))
 

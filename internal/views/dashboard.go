@@ -20,8 +20,11 @@ type Preferences struct {
 	Layout string
 }
 
+type AssetResolver func(string) (string, bool)
+
 type Paths struct {
-	BasePath string
+	BasePath      string
+	AssetResolver AssetResolver
 }
 
 func NewPaths(basePath string) Paths {
@@ -56,8 +59,17 @@ func (p Paths) URL(path string) string {
 }
 
 func (p Paths) AssetURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return raw
+	}
 	if strings.HasPrefix(raw, "/assets/") {
 		return p.URL(raw)
+	}
+	if p.AssetResolver != nil {
+		if path, ok := p.AssetResolver(raw); ok {
+			return p.URL(path)
+		}
 	}
 	return raw
 }

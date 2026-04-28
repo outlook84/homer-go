@@ -3,3 +3,4 @@ server.out.log
 bin/homer-go.exe
 /config.yml
 tmp/
+.gocache

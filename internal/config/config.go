@@ -17,7 +17,6 @@ import (
 type Loader struct {
 	AssetsDir     string
 	ConfigDir     string
-	ConfigPath    string
 	ExampleConfig []byte
 	AutoInit      bool
 	OnInit        func(string)
@@ -28,6 +27,7 @@ type ErrorKind string
 const (
 	ErrorNotFound     ErrorKind = "not_found"
 	ErrorPageNotFound ErrorKind = "page_not_found"
+	ErrorConfigDir    ErrorKind = "config_dir"
 	ErrorParse        ErrorKind = "parse"
 	ErrorExternal     ErrorKind = "external"
 )
@@ -47,6 +47,8 @@ func (e *LoadError) Error() string {
 		return fmt.Sprintf("configuration %s was not found", e.Source)
 	case ErrorPageNotFound:
 		return fmt.Sprintf("page configuration %s was not found", e.Source)
+	case ErrorConfigDir:
+		return fmt.Sprintf("configuration directory %s is not available: %v", e.Source, e.Err)
 	case ErrorParse:
 		return fmt.Sprintf("configuration %s could not be parsed: %v", e.Source, e.Err)
 	case ErrorExternal:
@@ -188,6 +190,9 @@ func (l Loader) loadBaseMap(ctx context.Context) (map[string]any, error) {
 	if !l.shouldInitConfig() || !errors.As(err, &loadErr) || loadErr.Kind != ErrorNotFound {
 		return nil, err
 	}
+	if err := requireConfigDir(filepath.Dir(path)); err != nil {
+		return nil, &LoadError{Kind: ErrorConfigDir, Source: filepath.Dir(path), Err: err}
+	}
 	if writeErr := os.WriteFile(path, l.ExampleConfig, 0o600); writeErr != nil {
 		return nil, &LoadError{Kind: ErrorNotFound, Source: path, Err: writeErr}
 	}
@@ -221,9 +226,6 @@ func (l Loader) loadMap(ctx context.Context, path string) (map[string]any, error
 }
 
 func (l Loader) baseConfigPath() string {
-	if l.ConfigPath != "" {
-		return l.ConfigPath
-	}
 	dir := l.ConfigDir
 	if dir == "" {
 		dir = l.AssetsDir
@@ -235,7 +237,21 @@ func (l Loader) baseConfigPath() string {
 }
 
 func (l Loader) shouldInitConfig() bool {
-	return l.AutoInit && l.ConfigPath == "" && len(l.ExampleConfig) > 0
+	return l.AutoInit && len(l.ExampleConfig) > 0
+}
+
+func requireConfigDir(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("create the directory first or choose an existing directory")
+		}
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("not a directory")
+	}
+	return nil
 }
 
 func readYAML(ctx context.Context, path string, external bool) (map[string]any, error) {

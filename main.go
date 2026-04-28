@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -18,6 +20,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -36,20 +39,21 @@ var buildID = "dev"
 func main() {
 	addr := flag.String("addr", env("HOMER_GO_ADDR", ":8732"), "HTTP listen address")
 	assetsDir := flag.String("assets", env("HOMER_GO_ASSETS_DIR", "assets"), "assets directory")
-	configPath := flag.String("config", env("HOMER_GO_CONFIG_FILE", ""), "configuration file")
+	dataDir := flag.String("data", env("HOMER_GO_DATA_DIR", "."), "data directory containing config.yml and user assets")
 	basePath := flag.String("base-path", env("HOMER_GO_BASE_PATH", ""), "public URL path prefix, e.g. /homer-go")
 	flag.Parse()
+	localAssets := newLocalAssetRegistry(*dataDir)
 	paths := views.NewPaths(*basePath)
+	paths.AssetResolver = localAssets.Resolve
 	assetFS := assetFileSystem(*assetsDir)
 	fingerprintFS := assetFingerprintFS(*assetsDir)
 	exampleConfig, _ := embeddedFiles.ReadFile("assets/config.yml")
 
 	loader := config.Loader{
 		AssetsDir:     *assetsDir,
-		ConfigDir:     ".",
-		ConfigPath:    *configPath,
+		ConfigDir:     *dataDir,
 		ExampleConfig: exampleConfig,
-		AutoInit:      *configPath == "",
+		AutoInit:      true,
 		OnInit: func(path string) {
 			log.Printf("config.yml not found; generated example config at %s", abs(path))
 		},
@@ -105,6 +109,7 @@ func main() {
 
 	appMux := http.NewServeMux()
 	appMux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(assetFS)))
+	appMux.Handle("/user-assets/", http.StripPrefix("/user-assets/", localAssets))
 	appMux.HandleFunc("/sw.js", serviceWorkerHandlerWithFS(buildID, fingerprintFS, paths))
 	appMux.HandleFunc("/fragments/message", messageFragmentHandler(loader))
 	appMux.HandleFunc("/fragments/services", servicesFragmentHandler(loader, registry, paths))
@@ -169,7 +174,7 @@ func main() {
 		Addr:    *addr,
 		Handler: mux,
 	}
-	log.Printf("homer-go listening on %s, assets=%s, config=%s, basePath=%q", *addr, abs(*assetsDir), abs(loaderConfigPath(loader)), paths.BasePath)
+	log.Printf("homer-go listening on %s, data=%s, assets=%s, config=%s, basePath=%q", *addr, abs(*dataDir), abs(*assetsDir), abs(loaderConfigPath(loader)), paths.BasePath)
 	if err := listenAndServe(ctx, server, 5*time.Second); err != nil {
 		log.Fatal(err)
 	}
@@ -273,6 +278,131 @@ func (o overlayFS) Open(name string) (fs.File, error) {
 		return file, nil
 	}
 	return o.embedded.Open(name)
+}
+
+type localAssetRegistry struct {
+	root   string
+	secret []byte
+	mu     sync.RWMutex
+	files  map[string]string
+}
+
+func newLocalAssetRegistry(root string) *localAssetRegistry {
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		absRoot = root
+	}
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		sum := sha256.Sum256([]byte(strconv.FormatInt(time.Now().UnixNano(), 10)))
+		secret = sum[:]
+	}
+	return &localAssetRegistry{
+		root:   filepath.Clean(absRoot),
+		secret: secret,
+		files:  map[string]string{},
+	}
+}
+
+func (r *localAssetRegistry) Resolve(raw string) (string, bool) {
+	path, ok := r.resolvePath(raw)
+	if !ok {
+		return "", false
+	}
+	token := r.token(path)
+	r.mu.Lock()
+	r.files[token] = path
+	r.mu.Unlock()
+	return "/user-assets/" + token, true
+}
+
+func (r *localAssetRegistry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet && req.Method != http.MethodHead {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	token := strings.Trim(req.URL.Path, "/")
+	if token == "" || strings.Contains(token, "/") || strings.Contains(token, `\`) {
+		http.NotFound(w, req)
+		return
+	}
+	r.mu.RLock()
+	path, ok := r.files[token]
+	r.mu.RUnlock()
+	if !ok {
+		http.NotFound(w, req)
+		return
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		http.NotFound(w, req)
+		return
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil || info.IsDir() {
+		http.NotFound(w, req)
+		return
+	}
+	setDynamicCacheHeaders(w)
+	http.ServeContent(w, req, filepath.Base(path), info.ModTime(), file)
+}
+
+func (r *localAssetRegistry) resolvePath(raw string) (string, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || strings.HasPrefix(raw, "/assets/") || isExternalURL(raw) {
+		return "", false
+	}
+	if strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, `\`) || filepath.IsAbs(raw) || isWindowsAbsPath(raw) {
+		return "", false
+	}
+	name := filepath.FromSlash(strings.ReplaceAll(raw, "\\", "/"))
+	abs, err := filepath.Abs(filepath.Join(r.root, name))
+	if err != nil {
+		return "", false
+	}
+	abs = filepath.Clean(abs)
+	root, err := filepath.EvalSymlinks(r.root)
+	if err != nil {
+		return "", false
+	}
+	root = filepath.Clean(root)
+	realPath, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return "", false
+	}
+	realPath = filepath.Clean(realPath)
+	rel, err := filepath.Rel(root, realPath)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	if isConfigAssetPath(rel) {
+		return "", false
+	}
+	return realPath, true
+}
+
+func (r *localAssetRegistry) token(path string) string {
+	h := hmac.New(sha256.New, r.secret)
+	_, _ = h.Write([]byte(filepath.Clean(path)))
+	return hex.EncodeToString(h.Sum(nil))[:32]
+}
+
+func isExternalURL(raw string) bool {
+	if strings.HasPrefix(raw, "//") {
+		return true
+	}
+	u, err := url.Parse(raw)
+	return err == nil && u.Scheme != "" && !isWindowsAbsPath(raw)
+}
+
+func isWindowsAbsPath(raw string) bool {
+	return strings.HasPrefix(raw, `\\`) || len(raw) >= 3 && raw[1] == ':' && (raw[2] == '\\' || raw[2] == '/')
+}
+
+func isConfigAssetPath(path string) bool {
+	ext := strings.ToLower(filepath.Ext(path))
+	return ext == ".yml" || ext == ".yaml"
 }
 
 func logUnsupportedConfig(loader config.Loader, registry *collectors.Registry) {
@@ -496,6 +626,9 @@ func renderConfigLoadErrorWithPaths(w http.ResponseWriter, r *http.Request, err 
 		templ.Handler(views.GetStartedPageWithPaths(paths)).ServeHTTP(w, r)
 	case config.ErrorPageNotFound:
 		http.NotFound(w, r)
+	case config.ErrorConfigDir:
+		w.WriteHeader(http.StatusInternalServerError)
+		templ.Handler(views.ConfigErrorPageWithPaths("Error loading configuration", loadErr.Error(), paths)).ServeHTTP(w, r)
 	case config.ErrorExternal:
 		w.WriteHeader(http.StatusBadGateway)
 		templ.Handler(views.ConfigErrorPageWithPaths("Error loading external configuration", loadErr.Error(), paths)).ServeHTTP(w, r)
@@ -634,9 +767,6 @@ func abs(path string) string {
 }
 
 func loaderConfigPath(loader config.Loader) string {
-	if loader.ConfigPath != "" {
-		return loader.ConfigPath
-	}
 	dir := loader.ConfigDir
 	if dir == "" {
 		dir = loader.AssetsDir
