@@ -313,6 +313,9 @@ func readYAML(ctx context.Context, path string, external bool) (map[string]any, 
 		}
 		body, err = ioReadAll(resp.Body)
 	} else {
+		// readYAML is called with deployment-selected config.yml paths or with
+		// externalConfig paths resolved by ResolveContained under the config dir.
+		// codeql[go/path-injection]
 		body, err = os.ReadFile(path)
 	}
 	if err != nil {
