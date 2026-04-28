@@ -1,5 +1,5 @@
 server.err.log
 server.out.log
 bin/homer-go.exe
-config.yml
+/config.yml
 tmp/

@@ -1,0 +1,48 @@
+---
+title: "homer-go dashboard"
+subtitle: "homer-go"
+logo: "/assets/icons/homer-go-logo-v2.png"
+header: true
+footer: '<p>Powered by homer-go.</p>'
+columns: "3"
+defaults:
+  layout: columns
+  colorTheme: auto
+theme: default
+message:
+  style: "is-dark"
+  title: "homer-go"
+  content: "A lightweight Homer-compatible dashboard served by Go."
+links:
+  - name: "GitHub"
+    icon: "fab fa-github"
+    url: "https://github.com/outlook84/homer-go"
+    target: "_blank"
+services:
+  - name: "Project"
+    icon: "fas fa-arrow-right"
+    items:
+      - name: "homer-go on GitHub"
+        icon: "fas fa-house"
+        subtitle: "Source code and releases"
+        tag: "repo"
+        keywords: "homer-go dashboard go"
+        url: "https://github.com/outlook84/homer-go"
+        target: "_blank"
+      - name: "Example ping"
+        type: "Ping"
+        icon: "fas fa-heart-pulse"
+        tag: "status"
+        keywords: "health status"
+        url: "https://example.com/"
+        method: "GET"
+      - name: "Quick links"
+        icon: "fas fa-bolt"
+        subtitle: "Useful project links"
+        tag: "links"
+        url: "#"
+        quick:
+          - name: "Repository"
+            icon: "fab fa-github"
+            url: "https://github.com/outlook84/homer-go"
+            target: "_blank"
