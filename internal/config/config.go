@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"homer-go/internal/pathutil"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -223,6 +225,10 @@ func (l Loader) loadMap(ctx context.Context, path string) (map[string]any, error
 		return nil, err
 	}
 	if external, ok := stringValue(m["externalConfig"]); ok && external != "" {
+		external, err = l.resolveExternalConfigPath(external)
+		if err != nil {
+			return nil, &LoadError{Kind: ErrorExternal, Source: external, Err: err}
+		}
 		m, err := readYAML(ctx, external, true)
 		if err != nil {
 			var loadErr *LoadError
@@ -234,6 +240,17 @@ func (l Loader) loadMap(ctx context.Context, path string) (map[string]any, error
 		return m, nil
 	}
 	return m, nil
+}
+
+func (l Loader) resolveExternalConfigPath(path string) (string, error) {
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		return path, nil
+	}
+	resolved, _, err := pathutil.ResolveContained(filepath.Dir(l.baseConfigPath()), path)
+	if err != nil {
+		return path, fmt.Errorf("externalConfig must stay under config directory")
+	}
+	return resolved, nil
 }
 
 func (l Loader) baseConfigPath() string {

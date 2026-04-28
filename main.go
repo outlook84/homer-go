@@ -26,6 +26,7 @@ import (
 
 	"homer-go/internal/collectors"
 	"homer-go/internal/config"
+	"homer-go/internal/pathutil"
 	"homer-go/internal/views"
 
 	"github.com/a-h/templ"
@@ -357,23 +358,8 @@ func (r *localAssetRegistry) resolvePath(raw string) (string, bool) {
 		return "", false
 	}
 	name := filepath.FromSlash(strings.ReplaceAll(raw, "\\", "/"))
-	abs, err := filepath.Abs(filepath.Join(r.root, name))
+	realPath, rel, err := pathutil.ResolveContained(r.root, name)
 	if err != nil {
-		return "", false
-	}
-	abs = filepath.Clean(abs)
-	root, err := filepath.EvalSymlinks(r.root)
-	if err != nil {
-		return "", false
-	}
-	root = filepath.Clean(root)
-	realPath, err := filepath.EvalSymlinks(abs)
-	if err != nil {
-		return "", false
-	}
-	realPath = filepath.Clean(realPath)
-	rel, err := filepath.Rel(root, realPath)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return "", false
 	}
 	if isConfigAssetPath(rel) {

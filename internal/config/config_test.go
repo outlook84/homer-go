@@ -358,6 +358,101 @@ func TestLoadReturnsExternalErrorWhenExternalConfigFails(t *testing.T) {
 	}
 }
 
+func TestLoadAllowsLocalExternalConfigUnderConfigDir(t *testing.T) {
+	assetsDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(assetsDir, "config.yml"), []byte("externalConfig: extras.yml\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(assetsDir, "extras.yml"), []byte("title: External dashboard\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	cfg, err := (Loader{AssetsDir: assetsDir}).Load(context.Background(), "default")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Title != "External dashboard" {
+		t.Fatalf("Title = %q, want External dashboard", cfg.Title)
+	}
+}
+
+func TestLoadAllowsAbsoluteLocalExternalConfigUnderRelativeConfigDir(t *testing.T) {
+	assetsDir := t.TempDir()
+	t.Chdir(assetsDir)
+	external := filepath.Join(assetsDir, "extras.yml")
+	if err := os.WriteFile(filepath.Join(assetsDir, "config.yml"), []byte("externalConfig: "+external+"\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.WriteFile(external, []byte("title: Absolute external dashboard\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	cfg, err := (Loader{}).Load(context.Background(), "default")
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Title != "Absolute external dashboard" {
+		t.Fatalf("Title = %q, want Absolute external dashboard", cfg.Title)
+	}
+}
+
+func TestLoadRejectsLocalExternalConfigOutsideConfigDir(t *testing.T) {
+	parentDir := t.TempDir()
+	assetsDir := filepath.Join(parentDir, "assets")
+	if err := os.Mkdir(assetsDir, 0o700); err != nil {
+		t.Fatalf("Mkdir() error = %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(assetsDir, "config.yml"), []byte("externalConfig: ../outside.yml\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(parentDir, "outside.yml"), []byte("title: Outside\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	_, err := (Loader{AssetsDir: assetsDir}).Load(context.Background(), "default")
+	if err == nil {
+		t.Fatal("Load() error = nil, want external error")
+	}
+
+	var loadErr *LoadError
+	if !errors.As(err, &loadErr) {
+		t.Fatalf("Load() error = %T, want LoadError", err)
+	}
+	if loadErr.Kind != ErrorExternal {
+		t.Fatalf("LoadError.Kind = %q, want %q", loadErr.Kind, ErrorExternal)
+	}
+	if !strings.Contains(loadErr.Error(), "external configuration") {
+		t.Fatalf("LoadError.Error() = %q, want external message", loadErr.Error())
+	}
+}
+
+func TestLoadRejectsLocalExternalConfigSymlinkOutsideConfigDir(t *testing.T) {
+	assetsDir := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "outside.yml")
+	if err := os.WriteFile(filepath.Join(assetsDir, "config.yml"), []byte("externalConfig: link.yml\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.WriteFile(outside, []byte("title: Outside\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	if err := os.Symlink(outside, filepath.Join(assetsDir, "link.yml")); err != nil {
+		t.Skipf("Symlink() error = %v", err)
+	}
+
+	_, err := (Loader{AssetsDir: assetsDir}).Load(context.Background(), "default")
+	if err == nil {
+		t.Fatal("Load() error = nil, want external error")
+	}
+
+	var loadErr *LoadError
+	if !errors.As(err, &loadErr) {
+		t.Fatalf("Load() error = %T, want LoadError", err)
+	}
+	if loadErr.Kind != ErrorExternal {
+		t.Fatalf("LoadError.Kind = %q, want %q", loadErr.Kind, ErrorExternal)
+	}
+}
+
 func TestLoadDoesNotResolveRemoteMessage(t *testing.T) {
 	called := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
