@@ -4,13 +4,23 @@
 
 homer-go is a lightweight, self-hosted dashboard inspired by [Homer](https://github.com/bastienwirtz/homer). It keeps your links, services, status badges, and quick actions in one browser page, configured with a simple `config.yml` file.
 
-This project is aimed at people who want the Homer experience as a single Go server and server-side status collection for supported smart cards.
+This project is aimed at people who want the Homer experience as a single Go server and server-side status collection for supported smart cards. Because it is **server-side rendered**, the dashboard loads incredibly fast with minimal client-side processing.
+
+
+![Screenshot](./docs/screenshot.png)
+
+<details>
+<summary>Mobile screenshot</summary>
+
+<img src="./docs/screenshot_mobile.png" width="400">
+
+</details>
+
 
 ## What is different from Homer?
 
 homer-go reads much of the same YAML shape as Homer, so existing Homer users can usually start from their current `config.yml`. The important differences are:
 
-- homer-go runs as a Go HTTP server. Homer is a static Vue app served by a web server.
 - Configuration is loaded from the data directory, usually `config.yml` beside the binary or inside `/data` in Docker. Homer normally uses `assets/config.yml`.
 - Supported smart-card data is collected by homer-go on the server. This usually avoids browser CORS problems that affect Homer smart cards.
 - The app includes its own embedded assets.
@@ -21,13 +31,13 @@ homer-go reads much of the same YAML shape as Homer, so existing Homer users can
 ## Features
 
 - YAML-based dashboard configuration
-- Groups, service cards, tags, icons, logos, quick links, and custom card colors
+- Groups, service cards, tags, icons, logos, quick links
 - Light, dark, and automatic theme preference
 - Column and list layout preference
 - Search across name, subtitle, tag, and keywords
 - Multiple pages using `page-name.yml`
 - Optional remote message banner
-- PWA assets and offline cached shell
+- PWA support
 - Optional base path for reverse proxies, such as `/dashboard`
 - Server-side status collection for supported integrations
 

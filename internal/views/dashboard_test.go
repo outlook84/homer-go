@@ -174,6 +174,32 @@ func TestRenderFooterMatchesHomerContentWrapper(t *testing.T) {
 	}
 }
 
+func TestBaseCSSKeepsFixedFooterAboveCardLayers(t *testing.T) {
+	css, err := os.ReadFile(filepath.Join("..", "..", "assets", "css", "base.css"))
+	if err != nil {
+		t.Fatalf("read base.css: %v", err)
+	}
+
+	html := string(css)
+	start := strings.Index(html, ".footer {")
+	if start == -1 {
+		t.Fatal("base.css missing .footer rule")
+	}
+	footer := html[start:]
+	end := strings.Index(footer, "}")
+	if end == -1 {
+		t.Fatal("base.css has unterminated .footer rule")
+	}
+	footer = footer[:end]
+
+	if !strings.Contains(footer, "position: fixed;") {
+		t.Fatalf("footer CSS missing fixed positioning: %s", footer)
+	}
+	if !strings.Contains(footer, "z-index: 10;") {
+		t.Fatalf("footer CSS must define a z-index above card child layers: %s", footer)
+	}
+}
+
 func TestRenderItemRendersStatusNotifications(t *testing.T) {
 	var b strings.Builder
 	item := config.Item{Name: "Downloads", URL: "#"}

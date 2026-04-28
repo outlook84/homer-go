@@ -427,6 +427,7 @@ h2 span {
   right: 0;
   bottom: 0;
   left: 0;
+  z-index: 10;
   padding: 0.5rem;
   background-color: var(--card-background);
   box-shadow: 0 2px 15px 0 var(--card-shadow);
