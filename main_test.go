@@ -111,6 +111,52 @@ func TestEnvUsesProjectScopedVariablesOnly(t *testing.T) {
 	}
 }
 
+func TestPreferenceHandlerSetsSecureCookieForHTTPSRequests(t *testing.T) {
+	tests := []struct {
+		name       string
+		target     string
+		forwarded  string
+		wantSecure bool
+	}{
+		{
+			name:       "direct HTTPS",
+			target:     "https://example.test/theme?value=dark",
+			wantSecure: true,
+		},
+		{
+			name:       "forwarded HTTPS",
+			target:     "http://example.test/theme?value=dark",
+			forwarded:  "https",
+			wantSecure: true,
+		},
+		{
+			name:       "plain HTTP",
+			target:     "http://example.test/theme?value=dark",
+			wantSecure: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, tt.target, nil)
+			if tt.forwarded != "" {
+				r.Header.Set("X-Forwarded-Proto", tt.forwarded)
+			}
+
+			preferenceHandler("theme", []string{"auto", "light", "dark"}, views.NewPaths(""))(w, r)
+
+			cookies := w.Result().Cookies()
+			if len(cookies) != 1 {
+				t.Fatalf("cookies = %d, want 1", len(cookies))
+			}
+			if got := cookies[0].Secure; got != tt.wantSecure {
+				t.Fatalf("cookie Secure = %v, want %v", got, tt.wantSecure)
+			}
+		})
+	}
+}
+
 func TestServiceWorkerUsesBuildIDAndNoCache(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/sw.js", nil)

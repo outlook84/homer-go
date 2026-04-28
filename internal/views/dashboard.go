@@ -32,9 +32,11 @@ func NewPaths(basePath string) Paths {
 	if basePath == "" || basePath == "/" {
 		return Paths{}
 	}
-	if !strings.HasPrefix(basePath, "/") {
-		basePath = "/" + basePath
+	u, err := url.Parse(basePath)
+	if err != nil || u.IsAbs() || u.Host != "" || u.RawQuery != "" || u.Fragment != "" || strings.Contains(u.Path, `\`) {
+		return Paths{}
 	}
+	basePath = "/" + strings.TrimLeft(u.Path, "/")
 	basePath = strings.TrimRight(basePath, "/")
 	if strings.Contains(basePath, "//") || strings.Contains(basePath, "?") || strings.Contains(basePath, "#") {
 		return Paths{}
@@ -46,9 +48,7 @@ func (p Paths) URL(path string) string {
 	if path == "" {
 		path = "/"
 	}
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
-	}
+	path = "/" + strings.TrimLeft(path, "/")
 	if p.BasePath == "" {
 		return path
 	}
@@ -79,13 +79,42 @@ func (p Paths) CookiePath() string {
 }
 
 func (p Paths) IsLocalURL(raw string) bool {
-	if raw == "" || !strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "//") {
+	u, err := url.Parse(raw)
+	if err != nil || u.IsAbs() || u.Host != "" || u.Opaque != "" || strings.Contains(raw, `\`) {
+		return false
+	}
+	if u.Path == "" || u.Path[0] != '/' {
+		return false
+	}
+	escapedPath := u.EscapedPath()
+	if hasEncodedPathSeparator(escapedPath) || hasDotPathSegment(u.Path) {
 		return false
 	}
 	if p.BasePath == "" {
 		return true
 	}
-	return raw == p.BasePath || strings.HasPrefix(raw, p.BasePath+"/")
+	return escapedPath == p.BasePath || strings.HasPrefix(escapedPath, p.BasePath+"/")
+}
+
+func hasEncodedPathSeparator(path string) bool {
+	path = strings.ToLower(path)
+	return strings.Contains(path, "%2f") || strings.Contains(path, "%5c")
+}
+
+func hasDotPathSegment(path string) bool {
+	for _, segment := range strings.Split(path, "/") {
+		if segment == "." || segment == ".." {
+			return true
+		}
+	}
+	return false
+}
+
+func (p Paths) RedirectURL(raw string) string {
+	if p.IsLocalURL(raw) {
+		return raw
+	}
+	return p.URL("/")
 }
 
 func GetStartedPage() templ.Component {

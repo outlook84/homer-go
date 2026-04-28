@@ -697,14 +697,15 @@ func preferenceHandler(name string, allowed []string, paths views.Paths) http.Ha
 			Value:    value,
 			Path:     paths.CookiePath(),
 			SameSite: http.SameSiteLaxMode,
+			Secure:   secureCookie(r),
 			MaxAge:   int((365 * 24 * time.Hour).Seconds()),
 		})
-		next := r.URL.Query().Get("return")
-		if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || !paths.IsLocalURL(next) {
-			next = paths.URL("/")
-		}
-		http.Redirect(w, r, next, http.StatusSeeOther)
+		http.Redirect(w, r, paths.RedirectURL(r.URL.Query().Get("return")), http.StatusSeeOther)
 	}
+}
+
+func secureCookie(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }
 
 func pageFromRequest(r *http.Request) (string, bool) {
@@ -723,10 +724,7 @@ func normalizePage(page string) (string, bool) {
 	if page == "default" {
 		return page, true
 	}
-	for _, r := range page {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' {
-			continue
-		}
+	if !config.ValidPageName(page) {
 		return "", false
 	}
 	return page, true

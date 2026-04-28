@@ -151,12 +151,20 @@ type QuickLink struct {
 }
 
 func (l Loader) Load(ctx context.Context, page string) (Config, error) {
+	page = strings.TrimSpace(page)
+	if page == "" {
+		page = "default"
+	}
+	if page != "default" && !ValidPageName(page) {
+		return Config{}, &LoadError{Kind: ErrorPageNotFound, Source: page, Err: fmt.Errorf("invalid page name")}
+	}
+
 	base, err := l.loadBaseMap(ctx)
 	if err != nil {
 		return Config{}, err
 	}
 	if page != "" && page != "default" {
-		pageMap, err := l.loadPageMap(ctx, page+".yml")
+		pageMap, err := l.loadPageMap(ctx, page)
 		if err != nil {
 			var loadErr *LoadError
 			if errors.As(err, &loadErr) && loadErr.Kind == ErrorNotFound {
@@ -202,8 +210,11 @@ func (l Loader) loadBaseMap(ctx context.Context) (map[string]any, error) {
 	return l.loadMap(ctx, path)
 }
 
-func (l Loader) loadPageMap(ctx context.Context, name string) (map[string]any, error) {
-	return l.loadMap(ctx, filepath.Join(filepath.Dir(l.baseConfigPath()), filepath.Clean(name)))
+func (l Loader) loadPageMap(ctx context.Context, page string) (map[string]any, error) {
+	if !ValidPageName(page) {
+		return nil, &LoadError{Kind: ErrorPageNotFound, Source: page, Err: fmt.Errorf("invalid page name")}
+	}
+	return l.loadMap(ctx, filepath.Join(filepath.Dir(l.baseConfigPath()), page+".yml"))
 }
 
 func (l Loader) loadMap(ctx context.Context, path string) (map[string]any, error) {
@@ -238,6 +249,19 @@ func (l Loader) baseConfigPath() string {
 
 func (l Loader) shouldInitConfig() bool {
 	return l.AutoInit && len(l.ExampleConfig) > 0
+}
+
+func ValidPageName(page string) bool {
+	if page == "" {
+		return false
+	}
+	for _, r := range page {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func requireConfigDir(path string) error {

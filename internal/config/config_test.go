@@ -286,6 +286,26 @@ func TestLoadReturnsPageNotFoundErrorForMissingPageConfig(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsUnsafePageName(t *testing.T) {
+	assetsDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(assetsDir, "config.yml"), []byte("title: Dashboard\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	_, err := (Loader{AssetsDir: assetsDir}).Load(context.Background(), "../secret")
+	if err == nil {
+		t.Fatal("Load() error = nil, want unsafe page error")
+	}
+
+	var loadErr *LoadError
+	if !errors.As(err, &loadErr) {
+		t.Fatalf("Load() error = %T, want LoadError", err)
+	}
+	if loadErr.Kind != ErrorPageNotFound {
+		t.Fatalf("LoadError.Kind = %q, want %q", loadErr.Kind, ErrorPageNotFound)
+	}
+}
+
 func TestLoadReturnsParseErrorForInvalidYAML(t *testing.T) {
 	assetsDir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(assetsDir, "config.yml"), []byte("title: [broken"), 0o600); err != nil {

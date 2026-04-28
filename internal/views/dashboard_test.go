@@ -60,6 +60,34 @@ func TestPathsNormalizeAndPrefixInternalURLs(t *testing.T) {
 	if !paths.IsLocalURL("/dash/?page=page2") || paths.IsLocalURL("/other/") {
 		t.Fatalf("IsLocalURL() did not constrain redirects to the base path")
 	}
+	if !paths.IsLocalURL("/dash?page=page2") {
+		t.Fatalf("IsLocalURL() should allow base path with query")
+	}
+	for _, input := range []string{
+		"https://example.test/",
+		"//example.test/",
+		"/\\example.test",
+		"/other/?return=/dash/",
+		"/dash/../other",
+		"/dash/%2e%2e/other",
+		"/dash%2f..%2fother",
+		"/dash%2F..%2Fother",
+		"/dash%5c..%5cother",
+		"dashboard",
+	} {
+		if paths.IsLocalURL(input) {
+			t.Fatalf("IsLocalURL(%q) = true, want false", input)
+		}
+		if got := paths.RedirectURL(input); got != "/dash/" {
+			t.Fatalf("RedirectURL(%q) = %q, want /dash/", input, got)
+		}
+	}
+	if got := paths.RedirectURL("/dash/?page=page2"); got != "/dash/?page=page2" {
+		t.Fatalf("RedirectURL() = %q, want /dash/?page=page2", got)
+	}
+	if got := NewPaths("//example.test").BasePath; got != "" {
+		t.Fatalf("NewPaths() accepted protocol-relative base path %q", got)
+	}
 }
 
 func TestAssetURLUsesRegisteredLocalAssetResolver(t *testing.T) {
