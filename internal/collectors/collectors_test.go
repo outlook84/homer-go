@@ -43,6 +43,27 @@ func TestPingAppliesProxyHeaders(t *testing.T) {
 	}
 }
 
+func TestPingUsesConfiguredTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	start := time.Now()
+	status := Ping{}.Collect(context.Background(), config.Item{
+		Type: "Ping",
+		URL:  server.URL,
+		Raw:  map[string]any{"timeout": 25},
+	}, config.Proxy{})
+
+	if status.State != "offline" {
+		t.Fatalf("status = %#v, want offline timeout", status)
+	}
+	if elapsed := time.Since(start); elapsed > 250*time.Millisecond {
+		t.Fatalf("elapsed = %s, want Ping timeout to stop request promptly", elapsed)
+	}
+}
+
 func TestVersionCollectors(t *testing.T) {
 	tests := []struct {
 		name    string

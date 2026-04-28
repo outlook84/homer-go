@@ -72,7 +72,6 @@ func TestUnsupportedConfigPathsReportsConfiguredUnsupportedKeys(t *testing.T) {
 		"hotkey",
 		"proxy.useCredentials",
 		"services[0].items[0].checkInterval",
-		"services[0].items[0].timeout",
 		"services[0].items[0].updateIntervalMs",
 		"services[0].items[0].useCredentials",
 	}

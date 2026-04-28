@@ -25,9 +25,6 @@ func UnsupportedConfigPaths(cfg Config) []string {
 					paths = append(paths, prefix+"."+key)
 				}
 			}
-			if item.Type == "Ping" && hasRawKey(item.Raw, "timeout") {
-				paths = append(paths, prefix+".timeout")
-			}
 		}
 	}
 

@@ -15,6 +15,12 @@ type Ping struct{}
 func (Ping) Type() string { return "Ping" }
 
 func (Ping) Collect(ctx context.Context, item config.Item, proxy config.Proxy) Status {
+	if timeout := pingTimeout(item); timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
 	endpoint := stringField(item, "endpoint")
 	if endpoint == "" {
 		endpoint = item.URL
@@ -42,4 +48,12 @@ func (Ping) Collect(ctx context.Context, item config.Item, proxy config.Proxy) S
 		return Status{State: "online", Tone: "success", Label: fmt.Sprintf("%d ms", elapsed.Milliseconds()), Detail: resp.Status, Indicator: "online", Updated: time.Now()}
 	}
 	return Status{State: "offline", Tone: "danger", Label: resp.Status, Indicator: "offline", Updated: time.Now()}
+}
+
+func pingTimeout(item config.Item) time.Duration {
+	timeoutMs := asCollectorInt(item.Raw["timeout"])
+	if timeoutMs <= 0 {
+		return 0
+	}
+	return time.Duration(timeoutMs) * time.Millisecond
 }
