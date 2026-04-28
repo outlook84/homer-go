@@ -1,0 +1,5 @@
+[
+  { "name": "app", "updateAvailable": false },
+  { "name": "db", "updateAvailable": true },
+  { "name": "proxy", "updateAvailable": true }
+]

@@ -1,0 +1,13 @@
+{
+  "system": {
+    "news": {
+      "unread": 2
+    }
+  },
+  "main": {
+    "logs": {
+      "numWarnings": 3,
+      "numErrors": 1
+    }
+  }
+}

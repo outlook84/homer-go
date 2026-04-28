@@ -1,0 +1,8 @@
+.git
+.github
+bin
+dist
+tmp
+*.log
+server.err.log
+server.out.log

@@ -1,0 +1,41 @@
+{
+  "data": {
+    "summary": {
+      "sda": {
+        "device": {
+          "archived": false,
+          "DeletedAt": null,
+          "device_status": 0
+        }
+      },
+      "sdb": {
+        "device": {
+          "archived": false,
+          "DeletedAt": null,
+          "device_status": 2
+        }
+      },
+      "sdc": {
+        "device": {
+          "archived": false,
+          "DeletedAt": null,
+          "device_status": 9
+        }
+      },
+      "old": {
+        "device": {
+          "archived": true,
+          "DeletedAt": null,
+          "device_status": 3
+        }
+      },
+      "deleted": {
+        "device": {
+          "archived": false,
+          "DeletedAt": "2026-01-02T03:04:05Z",
+          "device_status": 3
+        }
+      }
+    }
+  }
+}

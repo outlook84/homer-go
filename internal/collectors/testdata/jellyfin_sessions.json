@@ -1,0 +1,5 @@
+[
+  { "Id": "1", "NowPlayingItem": { "Name": "Movie" } },
+  { "Id": "2" },
+  { "Id": "3", "NowPlayingItem": { "Name": "Episode" } }
+]

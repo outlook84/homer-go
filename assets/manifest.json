@@ -1,0 +1,30 @@
+{
+  "name": "Homer-go dashboard",
+  "short_name": "Homer-go",
+  "description": "Self-hosted dashboard rendered by homer-go",
+  "theme_color": "#3367d6",
+  "background_color": "#3367d6",
+  "display": "standalone",
+  "start_url": "../",
+  "scope": "../",
+  "icons": [
+    {
+      "src": "icons/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

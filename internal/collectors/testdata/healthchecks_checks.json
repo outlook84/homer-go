@@ -1,0 +1,8 @@
+{
+  "checks": [
+    { "name": "a", "status": "up" },
+    { "name": "b", "status": "down" },
+    { "name": "c", "status": "grace" },
+    { "name": "d", "status": "up" }
+  ]
+}

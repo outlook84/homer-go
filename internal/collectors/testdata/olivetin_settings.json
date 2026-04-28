@@ -1,0 +1,9 @@
+{
+  "Rest": "./api/",
+  "ShowFooter": true,
+  "ShowNavigation": true,
+  "ShowNewVersions": true,
+  "AvailableVersion": "none",
+  "CurrentVersion": "2024.11.24",
+  "PageTitle": "OliveTin"
+}

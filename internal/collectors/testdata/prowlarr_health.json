@@ -1,0 +1,6 @@
+[
+  { "type": "warning" },
+  { "type": "error" },
+  { "type": "error" },
+  { "type": "notice" }
+]

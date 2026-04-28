@@ -1,0 +1,132 @@
+.status-indicator {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: 0.25rem;
+  color: var(--text-title);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.status-indicator.is-dot {
+  width: 8px;
+  min-width: 8px;
+  height: 8px;
+  overflow: visible;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+}
+
+.status-indicator::before {
+  content: " ";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 10px;
+  border-radius: 8px;
+  background-color: #9ca3af;
+  box-shadow: 0 0 5px 1px #9ca3af;
+}
+
+.status-indicator.is-dot::before {
+  margin-right: 0;
+}
+
+.status-indicator.is-success::before {
+  background-color: #94e185;
+  border-color: #78d965;
+  box-shadow: 0 0 5px 1px #94e185;
+}
+
+.status-indicator.is-danger::before {
+  background-color: #c9404d;
+  border-color: #c42c3b;
+  box-shadow: 0 0 5px 1px #c9404d;
+}
+
+.status-indicator.is-warning::before {
+  background-color: #f8a306;
+  border-color: #e1b35e;
+  box-shadow: 0 0 5px 1px #f8a306;
+}
+
+.status-indicator.is-info::before {
+  background-color: #1774ff;
+  border-color: #1774ff;
+  box-shadow: 0 0 5px 1px #1774ff;
+}
+
+.status-indicator.is-neutral::before {
+  background-color: #9ca3af;
+  box-shadow: 0 0 5px 1px #9ca3af;
+}
+
+.status-notifs {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  color: white;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  max-width: 55%;
+  font-family: sans-serif;
+  z-index: 1;
+}
+
+.status-notif {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.38rem;
+  border-radius: 4px;
+  background-color: #64748b;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.status-notif-label {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.status-notif.is-success {
+  background-color: #16a34a;
+}
+
+.status-notif.is-danger {
+  background-color: #dc2626;
+}
+
+.status-notif.is-warning {
+  background-color: #d97706;
+}
+
+.status-notif.is-info {
+  background-color: #0284c7;
+}
+
+.status-notif.is-neutral {
+  background-color: #64748b;
+}
+
+@keyframes pulse {
+  0% {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow:
+      inset 0 0 10px 2px rgba(0, 255, 182, 0.3),
+      0 0 5px 2px rgba(0, 255, 135, 0.2);
+  }
+  100% {
+    background: rgba(255, 255, 255, 1);
+    box-shadow:
+      inset 0 0 10px 2px rgba(0, 255, 182, 0.5),
+      0 0 15px 2px rgba(0, 255, 135, 1);
+  }
+}

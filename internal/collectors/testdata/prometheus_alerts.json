@@ -1,0 +1,11 @@
+{
+  "status": "success",
+  "data": {
+    "alerts": [
+      { "state": "inactive" },
+      { "state": "pending" },
+      { "state": "firing" },
+      { "state": "firing" }
+    ]
+  }
+}

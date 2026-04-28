@@ -1,0 +1,10 @@
+{
+  "photos": 12847,
+  "videos": 1523,
+  "usage": 248576851456,
+  "usageByUser": [
+    {"userId": "user-1"},
+    {"userId": "user-2"},
+    {"userId": "user-3"}
+  ]
+}

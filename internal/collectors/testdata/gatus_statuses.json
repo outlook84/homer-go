@@ -1,0 +1,23 @@
+[
+  {
+    "group": "Services",
+    "results": [
+      {"duration": 10000000, "success": true},
+      {"duration": 10000000, "success": true}
+    ]
+  },
+  {
+    "group": "External",
+    "results": [
+      {"duration": 10000000, "success": false},
+      {"duration": 10000000, "success": true}
+    ]
+  },
+  {
+    "group": "Services",
+    "results": [
+      {"duration": 20000000, "success": false},
+      {"duration": 20000000, "success": false}
+    ]
+  }
+]
