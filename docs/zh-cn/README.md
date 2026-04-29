@@ -1,29 +1,28 @@
 # homer-go
 
-[English](../README.md)
+[English](../../README.md)
 
-homer-go 是一个轻量级、自托管的首页仪表盘，灵感源自 [Homer](https://github.com/bastienwirtz/homer)。它能将您的常用链接、服务状态、快捷操作等整合在单个浏览器页面中，并通过简单的 `config.yml` 文件进行配置。
+homer-go 是一个轻量级、自托管的首页仪表盘，基本兼容 [Homer](https://github.com/bastienwirtz/homer) 的 `config.yml` 配置文件。它能将您的常用链接、服务状态、快捷操作等整合在单个浏览器页面中，并以单个 Go 服务运行。
 
 本项目为追求「Homer 般的使用体验，但希望以单一 Go 服务运行」的用户设计，并为支持的智能卡片提供服务端状态收集功能。得益于**服务端渲染 (SSR)**，仪表盘加载速度极快，无需等待客户端脚本执行。
 
-
-![截图](./screenshot.png)
+![截图](../screenshot.png)
 
 <details>
 <summary>手机端截图</summary>
 
-<img src="./screenshot_mobile.png" width="400">
+<img src="../screenshot_mobile.png" width="400">
 
 </details>
 
-
 ## 与 Homer 的主要区别
 
-homer-go 兼容大部分 Homer 的 YAML 配置格式，因此现有的 Homer 用户通常可以直接使用现有的 `config.yml`。其主要区别在于：
+homer-go 兼容大部分 Homer 的 YAML 配置格式，因此现有 Homer 用户通常可以从当前 `config.yml` 开始迁移。主要区别如下：
 
-- **配置加载**：homer-go 从数据目录读取配置（通常是二进制同级目录下的 `config.yml`，或 Docker 中的 `/data` 目录）；Homer 通常使用 `assets/config.yml`。
-- **状态收集**：智能卡片数据由 homer-go 服务端收集。这通常能避免影响 Homer 智能卡片的浏览器 CORS（跨域）问题。
-- **静态资源**：应用自带嵌入式静态资源，无需额外配置。
+- **配置加载**：homer-go 从数据目录读取配置，通常是当前工作目录下的 `config.yml`，Docker 中则是 `/data/config.yml`；Homer 通常使用 `assets/config.yml`。
+- **路径行为**：与 Homer 不同，`http://` 和 `https://` 仍然表示远程 URL；但 `icons/app.png`、`custom.css` 这类裸相对路径会按数据目录中的文件解析，而不是相对于浏览器 URL。
+- **状态收集**：智能卡片数据由 homer-go 服务端收集。这通常能避免影响 Homer 智能卡片的浏览器 CORS 问题。
+- **静态资源**：应用自带嵌入式静态资源。
 - **搜索功能**：采用基于表单的搜索，而非 Homer 的模糊键盘搜索。目前尚未实现 Homer 的 `/`、`Escape` 和 `Enter` 搜索快捷键。
 - **暂不支持的配置**：部分 Homer 配置项目前会被忽略，包括 `hotkey`、`proxy.useCredentials`、单项 `useCredentials` 以及单项刷新间隔配置。
 - **卡片支持**：homer-go 尚未实现 Homer 的所有智能卡片类型。不支持的服务类型仍会渲染为普通链接，但不会显示实时状态。
@@ -34,11 +33,11 @@ homer-go 兼容大部分 Homer 的 YAML 配置格式，因此现有的 Homer 用
 - 支持分组、服务卡片、标签、图标、Logo、快速链接
 - 内置浅色、深色及跟随系统的自动主题切换
 - 提供列布局和列表布局偏好设置
-- 支持按名称、副标题、标签和关键字进行搜索
-- 支持通过 `page-name.yml` 实现多页面跳转
+- 支持按名称、副标题、标签和关键字搜索
+- 支持通过 `page-name.yml` 实现多页面
 - 可选的远程消息横幅
 - 支持 PWA
-- 支持反向代理基路径设置（如 `/dashboard`）
+- 支持反向代理基路径，例如 `/dashboard`
 - 为支持的集成服务提供服务端状态收集
 
 ## 快速开始
@@ -59,7 +58,7 @@ homer-go
 homer-go -addr :8732 -data /path/to/config -base-path /homer-go
 ```
 
-同时也支持环境变量：
+也支持环境变量：
 
 - `HOMER_GO_ADDR`：监听地址，默认 `:8732`
 - `HOMER_GO_DATA_DIR`：数据目录，默认 `.`
@@ -121,7 +120,16 @@ services:
 
 如需增加页面，请在同一数据目录下创建 `media.yml` 或 `infra.yml` 等文件。在 `links` 中使用 `#media` 即可链接，或直接通过 `/?page=media` 访问。
 
-本地图片和自定义样式表可以放在数据目录下，并使用相对路径引用。内置资源可在 `/assets/` 下找到。
+本地图片和自定义样式表可以放在数据目录下，并使用裸相对路径引用。这些路径是数据目录下的文件路径，不是相对于当前浏览器 URL 的路径。`http://` 和 `https://` 会继续作为远程 URL 使用。内置资源可在 `/assets/` 下找到。
+
+更多文档：
+
+- [配置](./configuration.md)
+- [智能卡片](./smart-cards.md)
+- [主题](./theming.md)
+- [技巧](./tips-and-tricks.md)
+- [故障排查](./troubleshooting.md)
+- [开发](./development.md)
 
 ## 支持的智能卡片
 

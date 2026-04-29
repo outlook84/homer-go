@@ -1,8 +1,8 @@
 # homer-go
 
-[简体中文](./docs/README.zh-CN.md)
+[简体中文](./docs/zh-cn/README.md)
 
-homer-go is a lightweight, self-hosted dashboard inspired by [Homer](https://github.com/bastienwirtz/homer). It keeps your links, services, status badges, and quick actions in one browser page, configured with a simple `config.yml` file.
+homer-go is a lightweight, self-hosted dashboard that is mostly compatible with [Homer](https://github.com/bastienwirtz/homer) `config.yml` files. It keeps your links, services, status badges, and quick actions in one browser page while running as a single Go server.
 
 This project is aimed at people who want the Homer experience as a single Go server and server-side status collection for supported smart cards. Because it is **server-side rendered**, the dashboard loads incredibly fast with minimal client-side processing.
 
@@ -21,7 +21,8 @@ This project is aimed at people who want the Homer experience as a single Go ser
 
 homer-go reads much of the same YAML shape as Homer, so existing Homer users can usually start from their current `config.yml`. The important differences are:
 
-- Configuration is loaded from the data directory, usually `config.yml` beside the binary or inside `/data` in Docker. Homer normally uses `assets/config.yml`.
+- Configuration is loaded from the data directory, usually `config.yml` in the working directory or `/data` in Docker. Homer normally uses `assets/config.yml`.
+- Path handling is different from Homer: `http://` and `https://` values remain remote URLs, but bare relative paths such as `icons/app.png` or `custom.css` are resolved from the configured data directory, not relative to the browser URL.
 - Supported smart-card data is collected by homer-go on the server. This usually avoids browser CORS problems that affect Homer smart cards.
 - The app includes its own embedded assets.
 - Search is form-based rather than Homer's fuzzy keyboard search. The `/`, `Escape`, and `Enter` search shortcuts from Homer are not currently implemented.
@@ -121,7 +122,16 @@ services:
 
 For additional pages, create `media.yml`, `infra.yml`, or another page file in the same data directory. Link to it with `#media` in `links`, or open `/?page=media`.
 
-Local images and custom stylesheets can be placed in the data directory and referenced with relative paths. Built-in assets are available under `/assets/`.
+Local images and custom stylesheets can be placed in the data directory and referenced with bare relative paths. These paths are filesystem paths under the data directory, not URL-relative paths. `http://` and `https://` values are left as remote URLs. Built-in assets are available under `/assets/`.
+
+More documentation:
+
+- [Configuration](./docs/configuration.md)
+- [Smart Cards](./docs/smart-cards.md)
+- [Theming](./docs/theming.md)
+- [Tips and Tricks](./docs/tips-and-tricks.md)
+- [Troubleshooting](./docs/troubleshooting.md)
+- [Development](./docs/development.md)
 
 ## Supported Smart Cards
 
