@@ -149,6 +149,34 @@ func TestRenderPreferenceLinksRefreshReloadsCurrentPage(t *testing.T) {
 	}
 }
 
+func TestRenderAboutMenuShowsVersionAndRepository(t *testing.T) {
+	var b strings.Builder
+	oldVersion := AppVersion
+	AppVersion = "test-build"
+	defer func() {
+		AppVersion = oldVersion
+	}()
+
+	renderAboutMenu(&b)
+	html := b.String()
+
+	for _, want := range []string{
+		`fab fa-github fa-fw`,
+		`class="navbar-item icon-button about-link"`,
+		`data-tooltip="Version test-build"`,
+		`aria-label="GitHub repository, version test-build"`,
+		RepositoryURL,
+		`target="_blank"`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("renderAboutMenu() missing %s: %s", want, html)
+		}
+	}
+	if strings.Contains(html, `<span>test-build</span>`) {
+		t.Fatalf("renderAboutMenu() should keep version out of visible text: %s", html)
+	}
+}
+
 func TestRenderGroupsShowsNoResultsForEmptyFilter(t *testing.T) {
 	var b strings.Builder
 	cfg := config.Config{

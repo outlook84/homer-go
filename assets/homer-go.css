@@ -148,6 +148,36 @@
   background-color: var(--highlight-hover);
 }
 
+.about-link {
+  position: relative;
+}
+
+.about-link::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  display: none;
+  width: max-content;
+  max-width: 220px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #1f2937;
+  color: #ffffff;
+  content: attr(data-tooltip);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 24%);
+}
+
+.about-link:hover::after,
+.about-link:focus::after {
+  display: block;
+}
+
 .search-bar {
   position: relative;
   display: inline-flex;

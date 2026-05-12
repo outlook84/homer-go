@@ -20,6 +20,10 @@ type Preferences struct {
 	Layout string
 }
 
+var AppVersion = "dev"
+
+const RepositoryURL = "https://github.com/outlook84/homer-go"
+
 type AssetResolver func(string) (string, bool)
 
 type Paths struct {
@@ -270,6 +274,7 @@ func renderHeader(w io.Writer, cfg config.Config, paths Paths) {
 func renderNav(w io.Writer, cfg config.Config, page string, query string, prefs Preferences, paths Paths) {
 	write(w, "<div class=\"container-fluid\"><nav class=\"navbar\" role=\"navigation\" aria-label=\"main navigation\"><div class=\"container nav-inner\"><input id=\"nav-closed\" name=\"nav-state\" class=\"nav-state nav-state-closed\" type=\"radio\" checked><input id=\"navbar-toggle\" name=\"nav-state\" class=\"nav-state navbar-toggle\" type=\"radio\"><input id=\"search-toggle\" name=\"nav-state\" class=\"nav-state search-toggle\" type=\"radio\"><div class=\"nav-row\"><label for=\"navbar-toggle\" role=\"button\" aria-label=\"menu\" class=\"navbar-burger\"><span aria-hidden=\"true\"></span><span aria-hidden=\"true\"></span><span aria-hidden=\"true\"></span></label><label for=\"nav-closed\" role=\"button\" class=\"navbar-item icon-button mobile-menu-close\" title=\"Close menu\" aria-label=\"Close menu\"><i class=\"fas fa-xmark fa-fw\"></i></label><div class=\"navbar-end\">")
 	renderPreferenceLinksWithPaths(w, page, query, prefs, paths)
+	renderAboutMenu(w)
 	renderSearchWithPaths(w, page, query, "search", "desktop-search", paths)
 	write(w, "<label for=\"search-toggle\" role=\"button\" class=\"navbar-item icon-button mobile-search-toggle\" title=\"Search\" aria-label=\"Search\"><i class=\"fas fa-search fa-fw\"></i></label><label for=\"nav-closed\" role=\"button\" class=\"navbar-item icon-button mobile-search-close\" title=\"Close search\" aria-label=\"Close search\"><i class=\"fas fa-xmark fa-fw\"></i></label></div></div><div class=\"navbar-menu\"><div class=\"navbar-start\">")
 	for _, link := range cfg.Links {
@@ -325,6 +330,14 @@ func renderPreferenceLinksWithPaths(w io.Writer, page, query string, prefs Prefe
 	write(w, "<a class=\"navbar-item is-inline-block-mobile icon-button refresh-button\" title=\"Refresh\" href=\""+attr(returnTo)+"\" aria-label=\"Refresh\"><i class=\"fa-solid fa-arrow-rotate-right fa-fw\"></i></a>")
 	write(w, "<a class=\"navbar-item is-inline-block-mobile icon-button\" title=\"Theme\" href=\""+attr(themeURL)+"\"><i class=\""+attr(themeIcon(prefs.Theme))+" fa-fw\"></i></a>")
 	write(w, "<a class=\"navbar-item is-inline-block-mobile icon-button\" title=\"Layout\" href=\""+attr(layoutURL)+"\"><i class=\""+attr(layoutIcon(prefs.Layout))+" fa-fw\"></i></a>")
+}
+
+func renderAboutMenu(w io.Writer) {
+	version := strings.TrimSpace(AppVersion)
+	if version == "" {
+		version = "dev"
+	}
+	write(w, "<a class=\"navbar-item icon-button about-link\" data-tooltip=\"Version "+attr(version)+"\" aria-label=\"GitHub repository, version "+attr(version)+"\" href=\""+attr(RepositoryURL)+"\" target=\"_blank\" rel=\"noreferrer\"><i class=\"fab fa-github fa-fw\"></i></a>")
 }
 
 func renderMessageFragment(w io.Writer, msg config.Message) {

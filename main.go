@@ -43,6 +43,11 @@ func main() {
 	dataDir := flag.String("data", env("HOMER_GO_DATA_DIR", "."), "data directory containing config.yml and user assets")
 	basePath := flag.String("base-path", env("HOMER_GO_BASE_PATH", ""), "public URL path prefix, e.g. /homer-go")
 	flag.Parse()
+	buildID = strings.TrimSpace(buildID)
+	if buildID == "" {
+		buildID = "dev"
+	}
+	views.AppVersion = buildID
 	localAssets := newLocalAssetRegistry(*dataDir)
 	paths := views.NewPaths(*basePath)
 	paths.AssetResolver = localAssets.Resolve
@@ -162,6 +167,7 @@ func main() {
 	if _, err := os.Stat(*assetsDir); errors.Is(err, os.ErrNotExist) {
 		log.Printf("assets directory %q does not exist; embedded assets will be used", *assetsDir)
 	}
+	log.Printf("homer-go version=%s repository=%s", buildID, views.RepositoryURL)
 	logUnsupportedConfig(loader, registry)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
