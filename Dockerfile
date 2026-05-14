@@ -1,6 +1,6 @@
 FROM alpine:3.22 AS certs
 
-FROM busybox:1.37-musl
+FROM tianon/toybox:0.8.13
 
 ARG TARGETPLATFORM
 
