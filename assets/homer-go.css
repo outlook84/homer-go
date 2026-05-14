@@ -155,7 +155,7 @@
 .about-link::after {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   z-index: 30;
   display: none;
   width: max-content;
